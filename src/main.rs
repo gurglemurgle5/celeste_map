@@ -19,6 +19,7 @@ const EDITOR_COLORS: [Color; 7] = [
 ];
 
 const INACTIVE_BORDER_COLOR: Color = Color::RGB(0x2f, 0x4f, 0x4f);
+const GRID_COLOR: Color = Color::RGB(0x19, 0x19, 0x19);
 
 fn main() {
     if cfg!(target_os = "linux") {
@@ -77,6 +78,7 @@ fn main() {
                 viewport.w as u32,
                 viewport.h as u32,
             );
+
             for level in map.levels.iter() {
                 if level.name == session_data.level {
                     player_x = level.x + session_data.x as i32;
@@ -88,6 +90,30 @@ fn main() {
                         viewport.h as u32,
                     );
                 }
+            }
+
+            canvas.set_draw_color(GRID_COLOR);
+            let mut x = camera.x / (8 * 5) * (8 * 5) - 8;
+            while x > camera.x - 8 {
+                x -= 8 * 5;
+            }
+            while x < camera.x + camera.w as i32 {
+                let point = world_to_screen(x, 0, camera, viewport);
+                canvas
+                    .fill_rect(Rect::new(point.x, 0, 8, viewport.h as u32))
+                    .unwrap();
+                x += 8 * 5;
+            }
+            let mut y = camera.y / (8 * 5) * (8 * 5);
+            while y > camera.y - 8 {
+                y -= 8 * 5;
+            }
+            while y < camera.y + camera.h as i32 {
+                let point = world_to_screen(0, y, camera, viewport);
+                canvas
+                    .fill_rect(Rect::new(0, point.y, viewport.w as u32, 8))
+                    .unwrap();
+                y += 8 * 5;
             }
 
             for level in map.levels.iter() {
