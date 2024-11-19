@@ -1,7 +1,5 @@
 extern crate sdl2;
 
-use std::env;
-
 use reqwest::blocking::Client;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;

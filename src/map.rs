@@ -38,7 +38,7 @@ impl TryFrom<Element> for Map {
 
         Ok(Map {
             levels: levels.unwrap(),
-            filler: filler.unwrap(),
+            filler: filler.unwrap_or_default(),
             style: style.unwrap(),
         })
     }
