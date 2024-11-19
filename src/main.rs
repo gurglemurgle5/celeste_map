@@ -27,9 +27,9 @@ fn main() {
     let mut path = get_path_from_config();
     path += "/Content/Maps";
     println!("{path}");
-    if cfg!(target_os = "linux") && env::var("SDL_VIDEODRIVER").is_err() {
-        env::set_var("SDL_VIDEODRIVER", "wayland");
-    }
+    // if cfg!(target_os = "linux") && env::var("SDL_VIDEODRIVER").is_err() {
+    //     env::set_var("SDL_VIDEODRIVER", "wayland");
+    // }
 
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
@@ -129,28 +129,30 @@ impl State {
     }
 
     fn draw_grid<T: RenderTarget>(&mut self, canvas: &mut Canvas<T>) {
+        const GRID_INTERVAL: i32 = 8 * 5;
+        const GRID_WIDTH: i32 = 8;
         canvas.set_draw_color(GRID_COLOR);
-        let mut x = self.camera.x / (8 * 5) * (8 * 5) - 8;
+        let mut x = self.camera.x / GRID_INTERVAL * GRID_INTERVAL - 8;
         while x > self.camera.x - 8 {
-            x -= 8 * 5;
+            x -= GRID_INTERVAL;
         }
         while x < self.camera.x + self.camera.w {
             let point = self.world_to_screen(x, 0);
             canvas
                 .fill_rect(Rect::new(point.x, 0, 8, self.viewport.h as u32))
                 .unwrap();
-            x += 8 * 5;
+            x += GRID_INTERVAL;
         }
-        let mut y = self.camera.y / (8 * 5) * (8 * 5);
+        let mut y = self.camera.y / GRID_INTERVAL * GRID_INTERVAL;
         while y > self.camera.y - 8 {
-            y -= 8 * 5;
+            y -= GRID_INTERVAL;
         }
         while y < self.camera.y + self.camera.h {
             let point = self.world_to_screen(0, y);
             canvas
                 .fill_rect(Rect::new(0, point.y, self.viewport.w as u32, 8))
                 .unwrap();
-            y += 8 * 5;
+            y += GRID_INTERVAL;
         }
     }
 
