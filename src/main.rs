@@ -1,6 +1,6 @@
 extern crate sdl2;
 
-use std::{env, fs};
+use std::env;
 
 use reqwest::blocking::Client;
 use sdl2::pixels::Color;
@@ -8,7 +8,7 @@ use sdl2::rect::Rect;
 use sdl2::render::{BlendMode, Canvas, RenderTarget};
 use sdl2::{event::Event, rect::Point};
 
-use celeste_map::{Element, Map};
+use celeste_map::{get_path_from_config, Element, Map};
 
 const EDITOR_COLORS: [Color; 7] = [
     Color::WHITE,
@@ -24,13 +24,12 @@ const INACTIVE_BORDER_COLOR: Color = Color::RGB(0x2f, 0x4f, 0x4f);
 const GRID_COLOR: Color = Color::RGB(0x19, 0x19, 0x19);
 
 fn main() {
+    let mut path = get_path_from_config();
+    path += "/Content/Maps";
+    println!("{path}");
     if cfg!(target_os = "linux") && env::var("SDL_VIDEODRIVER").is_err() {
         env::set_var("SDL_VIDEODRIVER", "wayland");
     }
-    let maps_path = fs::read_to_string("./maps_path.txt")
-        .unwrap()
-        .trim()
-        .to_string();
 
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
@@ -45,7 +44,7 @@ fn main() {
     let mut canvas = window.into_canvas().present_vsync().build().unwrap();
     canvas.set_blend_mode(BlendMode::Blend);
 
-    let mut state = State::new(&maps_path);
+    let mut state = State::new(&path);
 
     let mut event_pump = sdl_context.event_pump().unwrap();
     'running: loop {
@@ -106,13 +105,10 @@ impl State {
         canvas.clear();
 
         if !self.session_data.map_bin.is_empty() {
-            let mut player_x = 0;
-            let mut player_y = 0;
-
             for level in self.map.levels.iter() {
                 if level.name == self.session_data.level {
-                    player_x = level.x + self.session_data.x as i32;
-                    player_y = level.y + self.session_data.y as i32;
+                    let player_x = level.x + self.session_data.x as i32;
+                    let player_y = level.y + self.session_data.y as i32;
                     self.camera = Rect::new(
                         player_x - self.viewport.w / 2,
                         player_y - self.viewport.h / 2,
@@ -126,16 +122,7 @@ impl State {
 
             self.draw_levels(canvas);
 
-            canvas.set_draw_color(Color::RGB(0, 255, 0));
-
-            canvas
-                .fill_rect(Rect::new(
-                    self.viewport.w / 2 - 4,
-                    self.viewport.h / 2 - 11,
-                    8,
-                    11,
-                ))
-                .unwrap();
+            self.draw_player(canvas);
         }
 
         canvas.present();
@@ -220,6 +207,19 @@ impl State {
                 ))
                 .unwrap();
         }
+    }
+
+    fn draw_player<T: RenderTarget>(&mut self, canvas: &mut Canvas<T>) {
+        canvas.set_draw_color(Color::RGB(0, 255, 0));
+
+        canvas
+            .fill_rect(Rect::new(
+                self.viewport.w / 2 - 4,
+                self.viewport.h / 2 - 11,
+                8,
+                11,
+            ))
+            .unwrap();
     }
 
     fn world_to_screen(&self, x: i32, y: i32) -> Point {
