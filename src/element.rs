@@ -18,8 +18,7 @@ impl Element {
 
         let num_strings = data.get_i16_le() as usize;
         let string_lookup: Vec<String> = (0..num_strings).map(|_| data.get_string()).collect();
-        let element = Element::read(&mut data, &string_lookup);
-        element
+        Element::read(&mut data, &string_lookup)
     }
 
     fn read(data: &mut Bytes, string_lookup: &[String]) -> Element {
