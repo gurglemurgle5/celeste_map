@@ -8,32 +8,16 @@ use sdl2::{event::Event, rect::Point};
 
 use celeste_map::{get_path_from_config, Element, Map};
 
-const EDITOR_COLORS: [Color; 7] = [
-    Color::WHITE,
-    Color::RGB(0xf6, 0x73, 0x5e),
-    Color::RGB(0x85, 0xf6, 0x5e),
-    Color::RGB(0x37, 0xd7, 0xe3),
-    Color::RGB(0x37, 0x6b, 0xe3),
-    Color::RGB(0xc3, 0x37, 0xe3),
-    Color::RGB(0xe3, 0x37, 0x73),
-];
-
-const INACTIVE_BORDER_COLOR: Color = Color::RGB(0x2f, 0x4f, 0x4f);
-const GRID_COLOR: Color = Color::RGB(0x19, 0x19, 0x19);
-
 fn main() {
     let mut path = get_path_from_config();
     path += "/Content/Maps";
-    println!("{path}");
-    // if cfg!(target_os = "linux") && env::var("SDL_VIDEODRIVER").is_err() {
-    //     env::set_var("SDL_VIDEODRIVER", "wayland");
-    // }
+    println!("Maps will be loaded from {path}");
 
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
 
     let window = video_subsystem
-        .window("Celeste Map", 800, 600)
+        .window("Celeste Map", 960, 540)
         .position_centered()
         .resizable()
         .build()
@@ -127,34 +111,47 @@ impl State {
     }
 
     fn draw_grid<T: RenderTarget>(&mut self, canvas: &mut Canvas<T>) {
+        const GRID_COLOR: Color = Color::RGB(0x19, 0x19, 0x19);
+
         const GRID_INTERVAL: i32 = 8 * 5;
-        const GRID_WIDTH: i32 = 8;
+        const GRID_WIDTH: u32 = 8;
         canvas.set_draw_color(GRID_COLOR);
         let mut x = self.camera.x / GRID_INTERVAL * GRID_INTERVAL - 8;
-        while x > self.camera.x - 8 {
+        while x > self.camera.x - GRID_WIDTH as i32 {
             x -= GRID_INTERVAL;
         }
         while x < self.camera.x + self.camera.w {
-            let point = self.world_to_screen(x, 0);
+            let point = self.translate_point((x, 0));
             canvas
-                .fill_rect(Rect::new(point.x, 0, 8, self.viewport.h as u32))
+                .fill_rect(Rect::new(point.x, 0, GRID_WIDTH, self.viewport.h as u32))
                 .unwrap();
             x += GRID_INTERVAL;
         }
         let mut y = self.camera.y / GRID_INTERVAL * GRID_INTERVAL;
-        while y > self.camera.y - 8 {
+        while y > self.camera.y - GRID_WIDTH as i32 {
             y -= GRID_INTERVAL;
         }
         while y < self.camera.y + self.camera.h {
-            let point = self.world_to_screen(0, y);
+            let point = self.translate_point((0, y));
             canvas
-                .fill_rect(Rect::new(0, point.y, self.viewport.w as u32, 8))
+                .fill_rect(Rect::new(0, point.y, self.viewport.w as u32, GRID_WIDTH))
                 .unwrap();
             y += GRID_INTERVAL;
         }
     }
 
     fn draw_levels<T: RenderTarget>(&mut self, canvas: &mut Canvas<T>) {
+        const EDITOR_COLORS: [Color; 7] = [
+            Color::WHITE,
+            Color::RGB(0xf6, 0x73, 0x5e),
+            Color::RGB(0x85, 0xf6, 0x5e),
+            Color::RGB(0x37, 0xd7, 0xe3),
+            Color::RGB(0x37, 0x6b, 0xe3),
+            Color::RGB(0xc3, 0x37, 0xe3),
+            Color::RGB(0xe3, 0x37, 0x73),
+        ];
+        const INACTIVE_BORDER_COLOR: Color = Color::RGB(0x2f, 0x4f, 0x4f);
+
         for level in self.map.levels.iter() {
             let level_rect = Rect::new(level.x, level.y, level.width, level.height);
             if level_rect.intersection(self.camera).is_none() {
@@ -164,16 +161,9 @@ impl State {
             for (y2, line) in level.bg.lines().enumerate() {
                 for (x2, char) in line.chars().enumerate() {
                     if char != '0' {
-                        let point =
-                            self.world_to_screen(level.x + x2 as i32 * 8, level.y + y2 as i32 * 8);
-                        canvas
-                            .fill_rect(Rect::new(
-                                point.x, point.y,
-                                // viewport.w / 2 + level.x + x2 as i32 * 8 - player_x,
-                                // viewport.h / 2 + level.y + y2 as i32 * 8 - player_y,
-                                8, 8,
-                            ))
-                            .unwrap()
+                        let rect =
+                            Rect::new(level.x + x2 as i32 * 8, level.y + y2 as i32 * 8, 8, 8);
+                        canvas.fill_rect(self.translate_rect(rect)).unwrap()
                     }
                 }
             }
@@ -181,54 +171,42 @@ impl State {
             for (y2, line) in level.solids.lines().enumerate() {
                 for (x2, char) in line.chars().enumerate() {
                     if char != '0' {
-                        let point =
-                            self.world_to_screen(level.x + x2 as i32 * 8, level.y + y2 as i32 * 8);
-                        canvas
-                            .fill_rect(Rect::new(
-                                point.x, point.y,
-                                // viewport.w / 2 + level.x + x2 as i32 * 8 - player_x,
-                                // viewport.h / 2 + level.y + y2 as i32 * 8 - player_y,
-                                8, 8,
-                            ))
-                            .unwrap()
+                        let rect =
+                            Rect::new(level.x + x2 as i32 * 8, level.y + y2 as i32 * 8, 8, 8);
+                        canvas.fill_rect(self.translate_rect(rect)).unwrap()
                     }
                 }
             }
+
             canvas.set_draw_color(INACTIVE_BORDER_COLOR);
-            let start = self.world_to_screen(level.x, level.y);
-            let end =
-                self.world_to_screen(level.x + level.width as i32, level.y + level.height as i32);
-            canvas
-                .draw_rect(Rect::new(
-                    start.x,
-                    start.y,
-                    (end.x - start.x) as u32,
-                    (end.y - start.y) as u32,
-                ))
-                .unwrap();
+            canvas.draw_rect(self.translate_rect(level_rect)).unwrap();
         }
     }
 
     fn draw_player<T: RenderTarget>(&mut self, canvas: &mut Canvas<T>) {
-        canvas.set_draw_color(Color::RGB(0, 255, 0));
+        const PLAYER_COLOR: Color = Color::RGB(0xAC, 0x32, 0x32);
+        canvas.set_draw_color(PLAYER_COLOR);
 
-        canvas
-            .fill_rect(Rect::new(
-                self.viewport.w / 2 - 4,
-                self.viewport.h / 2 - 11,
-                8,
-                11,
-            ))
-            .unwrap();
+        let player_rect = Rect::new(self.session_data.x - 4, self.session_data.y - 11, 8, 11);
+
+        canvas.fill_rect(self.translate_rect(player_rect)).unwrap();
     }
 
-    fn world_to_screen(&self, x: i32, y: i32) -> Point {
+    fn translate_point<T: Into<Point>>(&self, point: T) -> Point {
+        let (x, y): (i32, i32) = point.into().into();
         let x_new =
             ((x as f64 - self.camera.x as f64) / self.camera.w as f64) * self.viewport.w as f64; // + self.viewport.x;
         let y_new =
             ((y as f64 - self.camera.y as f64) / self.camera.h as f64) * self.viewport.h as f64; // + self.viewport.y;
 
         Point::new(x_new.round() as i32, y_new.round() as i32)
+    }
+
+    fn translate_rect(&self, rect: Rect) -> Rect {
+        let (x_new, y_new) = self.translate_point((rect.x, rect.y)).into();
+        let width = self.viewport.w as f64 / self.camera.w as f64 * rect.w as f64;
+        let height = self.viewport.h as f64 / self.camera.h as f64 * rect.h as f64;
+        Rect::new(x_new, y_new, width.round() as u32, height.round() as u32)
     }
 
     /// Fetch Session Data from the Everest debug web api.
@@ -257,8 +235,8 @@ impl State {
             side: side.into(),
             level: level.into(),
             map_bin: map_bin.into(),
-            x: x.parse().ok()?,
-            y: y.parse().ok()?,
+            x: x.parse::<f32>().ok()?.round() as i32,
+            y: y.parse::<f32>().ok()?.round() as i32,
             tp: tp.into(),
         };
 
@@ -272,8 +250,8 @@ pub struct SessionData {
     pub side: String,
     pub level: String,
     pub map_bin: String,
-    pub x: f32,
-    pub y: f32,
+    pub x: i32,
+    pub y: i32,
     pub tp: String,
 }
 
@@ -284,8 +262,8 @@ impl Default for SessionData {
             side: "'?'".into(),
             level: "".into(),
             map_bin: "".into(),
-            x: 0.0,
-            y: 0.0,
+            x: 0,
+            y: 0,
             tp: "''".into(),
         }
     }
