@@ -52,6 +52,7 @@ struct State {
     map_bin: String,
     maps_path: String,
     http_client: Client,
+    player_pos: Point,
 }
 
 impl State {
@@ -64,6 +65,7 @@ impl State {
             map_bin: String::new(),
             maps_path: maps_path.into(),
             http_client: Client::new(),
+            player_pos: Point::new(0, 0),
         }
     }
 
@@ -91,6 +93,7 @@ impl State {
                 if level.name == self.session_data.level {
                     let player_x = level.x + self.session_data.x as i32;
                     let player_y = level.y + self.session_data.y as i32;
+                    self.player_pos = Point::new(player_x, player_y);
                     self.camera = Rect::new(
                         player_x - self.viewport.w / 2,
                         player_y - self.viewport.h / 2,
@@ -187,7 +190,7 @@ impl State {
         const PLAYER_COLOR: Color = Color::RGB(0xAC, 0x32, 0x32);
         canvas.set_draw_color(PLAYER_COLOR);
 
-        let player_rect = Rect::new(self.session_data.x - 4, self.session_data.y - 11, 8, 11);
+        let player_rect = Rect::new(self.player_pos.x - 4, self.player_pos.y - 11, 8, 11);
 
         canvas.fill_rect(self.translate_rect(player_rect)).unwrap();
     }
