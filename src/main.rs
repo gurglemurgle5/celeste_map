@@ -11,7 +11,7 @@ use celeste_map::{get_path_from_config, Element, Map};
 fn main() {
     let mut path = get_path_from_config();
     path += "/Content/Maps";
-    println!("Maps will be loaded from {path}");
+    eprintln!("Maps will be loaded from {path}");
 
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
@@ -74,8 +74,10 @@ impl State {
 
         if !session_data.map_bin.is_empty() && session_data.map_bin != self.map_bin {
             let path = format!("{}/{}.bin", self.maps_path, session_data.map_bin);
-            println!("Loading map from path '{path}'");
-            self.map = Element::from_file(path).try_into().unwrap();
+            eprintln!("Loading map from path '{path}'");
+            let element = Element::from_file(path);
+            // println!("{element:#?}");
+            self.map = element.try_into().unwrap();
             self.map_bin = session_data.map_bin.clone();
         }
         self.session_data = session_data;
@@ -89,10 +91,10 @@ impl State {
         canvas.clear();
 
         if !self.session_data.map_bin.is_empty() {
-            for level in self.map.levels.iter() {
+            for level in &self.map.levels {
                 if level.name == self.session_data.level {
-                    let player_x = level.x + self.session_data.x as i32;
-                    let player_y = level.y + self.session_data.y as i32;
+                    let player_x = level.x + self.session_data.x;
+                    let player_y = level.y + self.session_data.y;
                     self.player_pos = Point::new(player_x, player_y);
                     self.camera = Rect::new(
                         player_x - self.viewport.w / 2,
@@ -155,7 +157,7 @@ impl State {
         ];
         const INACTIVE_BORDER_COLOR: Color = Color::RGB(0x2f, 0x4f, 0x4f);
 
-        for level in self.map.levels.iter() {
+        for level in &self.map.levels {
             let level_rect = Rect::new(level.x, level.y, level.width, level.height);
             if level_rect.intersection(self.camera).is_none() {
                 continue;
@@ -166,7 +168,7 @@ impl State {
                     if char != '0' {
                         let rect =
                             Rect::new(level.x + x2 as i32 * 8, level.y + y2 as i32 * 8, 8, 8);
-                        canvas.fill_rect(self.translate_rect(rect)).unwrap()
+                        canvas.fill_rect(self.translate_rect(rect)).unwrap();
                     }
                 }
             }
@@ -176,7 +178,7 @@ impl State {
                     if char != '0' {
                         let rect =
                             Rect::new(level.x + x2 as i32 * 8, level.y + y2 as i32 * 8, 8, 8);
-                        canvas.fill_rect(self.translate_rect(rect)).unwrap()
+                        canvas.fill_rect(self.translate_rect(rect)).unwrap();
                     }
                 }
             }
@@ -261,10 +263,10 @@ pub struct SessionData {
 impl Default for SessionData {
     fn default() -> Self {
         SessionData {
-            area: "".into(),
+            area: String::new(),
             side: "'?'".into(),
-            level: "".into(),
-            map_bin: "".into(),
+            level: String::new(),
+            map_bin: String::new(),
             x: 0,
             y: 0,
             tp: "''".into(),

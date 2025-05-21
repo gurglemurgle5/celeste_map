@@ -77,24 +77,28 @@ pub enum Value {
 }
 
 impl Value {
+    #[must_use]
     pub fn as_bool(&self) -> Option<bool> {
         match self {
             Value::Bool(val) => Some(*val),
             _ => None,
         }
     }
+    #[must_use]
     pub fn as_int(&self) -> Option<i32> {
         match self {
             Value::Int(val) => Some(*val),
             _ => None,
         }
     }
+    #[must_use]
     pub fn as_float(&self) -> Option<f32> {
         match self {
             Value::Float(val) => Some(*val),
             _ => None,
         }
     }
+    #[must_use]
     pub fn as_str(&self) -> Option<&str> {
         match self {
             Value::String(val) => Some(val),
@@ -135,8 +139,8 @@ impl<T: Buf> BufExt for T {
             position += 7;
 
             if position >= 32 {
-                todo!()
-            };
+                todo!();
+            }
         }
 
         value

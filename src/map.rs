@@ -79,7 +79,7 @@ impl From<Element> for Level {
         let mut solids = None;
         let mut bg = None;
 
-        for child in value.children.iter() {
+        for child in &value.children {
             if child.name == "solids" {
                 solids = child
                     .attributes

@@ -3,12 +3,13 @@ mod map;
 
 use std::{collections::HashMap, env, fs, path::PathBuf, str::FromStr};
 
+#[must_use]
 pub fn get_path_from_config() -> String {
     let mut path = get_olympus_config_path();
     path.push("config.json");
     let data: HashMap<String, serde_json::Value> =
         serde_json::from_reader(fs::File::open(path).unwrap()).unwrap();
-    data.get("installs".into())
+    data.get("installs")
         .unwrap()
         .get(0)
         .unwrap()
@@ -19,10 +20,11 @@ pub fn get_path_from_config() -> String {
         .into()
 }
 
+#[must_use]
 pub fn get_olympus_config_path() -> PathBuf {
     const NAME: &str = "Olympus";
     if let Ok(path) = env::var("OLYMPUS_CONFIG") {
-        if fs::metadata(&path).map_or(false, |meta| meta.is_dir()) {
+        if fs::metadata(&path).is_ok_and(|meta| meta.is_dir()) {
             return PathBuf::from_str(&path).unwrap();
         }
     }
